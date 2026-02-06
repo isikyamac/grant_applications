@@ -1,0 +1,29 @@
+company:
+  name: "Noam AI"
+  description: "Small business developing AI systems for airport operations and aviation safety, including taxi-time prediction, ATC speech recognition, runway incursion risk assessment, and airport surface monitoring."
+  focus_areas:
+    - airport operations
+    - aviation safety
+    - AI for air traffic control
+    - taxi-time prediction
+    - runway safety
+    - airport surface monitoring
+    - generative AI for aviation
+    - speech recognition for ATC
+  eligibility:
+    - small business
+    - US-based
+    - EU SME
+
+search:
+  keywords:
+    - airport safety AI
+    - air traffic control technology
+    - runway incursion prevention
+    - airport surface surveillance
+    - taxi-time prediction
+    - aviation speech recognition
+    - airport operations machine learning
+    - aviation safety research
+    - unmanned aircraft systems safety
+    - FAA airport technology

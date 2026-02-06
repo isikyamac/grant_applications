@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grant-researcher"
+version = "0.1.0"
+description = "CLI tool to search and match government grants for your company"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.0",
+    "httpx>=0.24",
+    "anthropic>=0.40",
+    "python-dotenv>=1.0",
+    "pyyaml>=6.0",
+    "pymupdf>=1.24",
+]
+
+[tool.setuptools.packages.find]
+include = ["grant_researcher*"]
+
+[project.scripts]
+grant-researcher = "grant_researcher.cli:cli"

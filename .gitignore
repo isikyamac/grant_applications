@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment
+.env
+.venv/
+venv/
+
+# Database
+grants.db
+
+# Proposals (user content)
+proposals/*.pdf
+
+# OS
+.DS_Store
+Thumbs.db
