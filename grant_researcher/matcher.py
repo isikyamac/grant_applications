@@ -43,7 +43,12 @@ def _build_batch_filter_prompt(
 {grants_text}
 
 ## Instructions
-Review each grant and identify which ones are potentially relevant to the company (would score above 20 out of 100).
+Review each grant and identify which ones are potentially relevant to the company (would score above 20 out of 100). A grant can be relevant for ANY of these reasons:
+1. Domain relevance — the grant targets the company's industry or focus areas
+2. Technology/capability match — the grant funds technologies the company works with (e.g. AI, machine learning, generative AI) even if the grant is not industry-specific
+3. Eligibility fit — the grant targets a category the company belongs to (e.g. SME, small business, startup)
+
+A generic AI or SME grant where the company is clearly eligible and has matching capabilities IS relevant.
 
 Respond with ONLY a comma-separated list of the grant numbers that are potentially relevant. If none are relevant, respond with "NONE".
 
@@ -94,12 +99,19 @@ def _build_prompt(grant: dict, config: Config, proposal_texts: list[str]) -> str
 - Amount: {grant['amount'] or 'N/A'}
 
 ## Instructions
-Score this grant's relevance to the company from 0 to 100:
-- 0-20: Not relevant at all
-- 21-40: Tangentially related
-- 41-60: Somewhat relevant
-- 61-80: Good fit
-- 81-100: Excellent fit
+Score this grant's relevance to the company from 0 to 100 based on three dimensions:
+1. Domain relevance — does the grant target the company's industry or focus areas?
+2. Technology/capability match — does the grant fund technologies the company works with (e.g. AI, machine learning, generative AI), even if the grant is not industry-specific?
+3. Eligibility fit — does the grant target a category the company belongs to (e.g. SME, small business, startup)?
+
+A grant that strongly matches on 2 or more dimensions should score high even if it's not specific to the company's industry. For example, a generic "AI for SMEs" grant is a good fit for an AI company that is an SME.
+
+Scoring guide:
+- 0-20: No meaningful match on any dimension
+- 21-40: Weak match on one dimension
+- 41-60: Moderate match on one dimension, or weak match on two
+- 61-80: Strong match on two dimensions
+- 81-100: Strong match on all three dimensions
 
 Respond in exactly this format:
 SCORE: <number>

@@ -11,7 +11,8 @@ SEARCH_URL = "https://api.ted.europa.eu/v3/notices/search"
 # Expert query syntax: FT = (term OR term ...) with date filter for recent notices
 QUERY = (
     'FT = (aviation OR aircraft OR aerospace OR airport OR SESAR'
-    ' OR "air traffic management" OR "unmanned aerial")'
+    ' OR "air traffic management" OR "unmanned aerial"'
+    ' OR "generative AI" OR "artificial intelligence" OR "machine learning")'
     " AND publication-date > 20240101"
 )
 

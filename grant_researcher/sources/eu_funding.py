@@ -1,6 +1,7 @@
 import json
 import re
 import warnings
+from datetime import datetime, timezone
 from sqlite3 import Connection
 
 import httpx
@@ -12,22 +13,17 @@ from grant_researcher.db import upsert_grant
 
 RSS_URL = "https://ec.europa.eu/info/funding-tenders/opportunities/data/referenceData/grantTenders-rss.xml"
 
-AVIATION_KEYWORDS = [
-    "aviation",
-    "airport",
-    "aircraft",
-    "aerospace",
-    "air traffic",
-    "atm",
-    "sesar",
-    "runway",
-    "drone",
-    "uas",
-    "unmanned aerial",
-    "clean aviation",
-    "flight",
-    "airspace",
-    "pilot",
+KEYWORDS = [
+    # Aviation domain
+    "aviation", "airport", "aircraft", "aerospace", "air traffic",
+    "atm", "sesar", "runway", "drone", "uas", "unmanned aerial",
+    "clean aviation", "flight", "airspace",
+    # Technology / capability
+    "artificial intelligence", "machine learning", "deep learning",
+    "generative ai", "foundation model", "large language model",
+    # Company profile
+    "sme", "small business", "startup", "start-up", "accelerator",
+    "pre-accelerator", "innovation",
 ]
 
 
@@ -69,23 +65,44 @@ def _parse_rss(xml_text: str) -> list[dict]:
 
         title = title_tag.text.strip() if title_tag else ""
         description = desc_tag.text.strip() if desc_tag else ""
-        pub_date = pub_tag.text.strip() if pub_tag else ""
+
+        # Extract real deadline from description HTML
+        # Format: <b>Deadline</b>: Thu, 26 Sep 2024 17:00:00 (Brussels local time)
+        deadline = ""
+        deadline_match = re.search(
+            r"Deadline</b>:\s*(\w+,\s+\d+\s+\w+\s+\d{4}\s+[\d:]+)", description
+        )
+        if deadline_match:
+            deadline = deadline_match.group(1)
 
         calls.append({
             "call_id": call_id,
             "title": title,
             "description": description,
             "url": url,
-            "pub_date": pub_date,
+            "deadline": deadline,
         })
 
     return calls
 
 
-def _is_aviation_relevant(title: str, description: str) -> bool:
-    """Check if the call is related to aviation based on keywords."""
+def _is_relevant(title: str, description: str) -> bool:
+    """Check if the call matches aviation, AI, or SME keywords."""
     text = f"{title} {description}".lower()
-    return any(kw in text for kw in AVIATION_KEYWORDS)
+    return any(kw in text for kw in KEYWORDS)
+
+
+def _is_deadline_future(deadline_str: str) -> bool:
+    """Return True if the deadline is in the future or unparseable."""
+    if not deadline_str:
+        return True  # keep calls with no deadline (open-ended)
+    try:
+        # "Thu, 26 Sep 2024 17:00:00"
+        dt = datetime.strptime(deadline_str, "%a, %d %b %Y %H:%M:%S")
+        dt = dt.replace(tzinfo=timezone.utc)
+        return dt > datetime.now(timezone.utc)
+    except ValueError:
+        return True  # keep if we can't parse
 
 
 def _normalize(record: dict) -> dict:
@@ -95,7 +112,7 @@ def _normalize(record: dict) -> dict:
         "title": record.get("title", ""),
         "agency": "European Commission",
         "description": record.get("description", ""),
-        "deadline": record.get("pub_date", ""),
+        "deadline": record.get("deadline", ""),
         "url": record.get("url", ""),
         "amount": "",
         "raw_json": json.dumps(record),
@@ -103,10 +120,10 @@ def _normalize(record: dict) -> dict:
 
 
 def search_grants(keywords: list[str], conn: Connection) -> int:
-    """Fetch EU Funding & Tenders RSS feed, filter for aviation, upsert results.
+    """Fetch EU Funding & Tenders RSS feed, filter for relevance, upsert results.
 
     The `keywords` arg from config is ignored — we filter locally using
-    AVIATION_KEYWORDS since the RSS feed returns all recent calls.
+    KEYWORDS (aviation + AI + SME) since the RSS feed returns all recent calls.
     """
     total = 0
 
@@ -117,10 +134,13 @@ def search_grants(keywords: list[str], conn: Connection) -> int:
         return 0
 
     for call in _parse_rss(xml_text):
-        if not _is_aviation_relevant(call.get("title", ""), call.get("description", "")):
+        if not call.get("call_id"):
             continue
 
-        if not call.get("call_id"):
+        if not _is_deadline_future(call.get("deadline", "")):
+            continue
+
+        if not _is_relevant(call.get("title", ""), call.get("description", "")):
             continue
 
         grant = _normalize(call)
