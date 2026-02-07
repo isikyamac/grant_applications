@@ -1,7 +1,7 @@
 import click
 
 from grant_researcher.config import Config
-from grant_researcher.db import init_db, grant_count
+from grant_researcher.db import init_db, grant_count, purge_expired_grants
 
 
 @click.group()
@@ -46,6 +46,10 @@ def search(ctx):
 
     config = ctx.obj["config"]
     conn = ctx.obj["conn"]
+
+    expired = purge_expired_grants(conn)
+    if expired:
+        click.echo(f"Purged {expired} expired grant(s).")
 
     keywords = config.search.keywords
     before = grant_count(conn)

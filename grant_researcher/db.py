@@ -109,3 +109,46 @@ def get_scored_grants(conn: sqlite3.Connection) -> list[dict]:
         "SELECT * FROM grants WHERE score IS NOT NULL ORDER BY score DESC"
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+def _parse_deadline(deadline: str) -> datetime | None:
+    """Try to parse a deadline string in any of the formats used by our sources."""
+    if not deadline:
+        return None
+    for fmt in (
+        "%m/%d/%Y",                    # grants.gov: 03/31/2027
+        "%a, %d %b %Y %H:%M:%S %Z",   # eu.funding: Thu, 25 Jul 2024 22:00:00 GMT
+        "%a, %d %b %Y %H:%M:%S",       # eu.funding (no tz)
+        "%Y-%m-%dZ",                    # ted: 2024-02-16Z
+        "%Y-%m-%d%z",                   # ted: 2024-02-16+01:00
+        "%Y-%m-%d",                     # ISO date
+    ):
+        try:
+            dt = datetime.strptime(deadline, fmt)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        except ValueError:
+            continue
+    return None
+
+
+def purge_expired_grants(conn: sqlite3.Connection) -> int:
+    """Delete grants whose deadline has passed. Returns count of deleted rows."""
+    now = datetime.now(timezone.utc)
+    rows = conn.execute(
+        "SELECT id, deadline FROM grants WHERE deadline IS NOT NULL AND deadline != ''"
+    ).fetchall()
+
+    expired_ids = []
+    for row in rows:
+        dt = _parse_deadline(row["deadline"])
+        if dt and dt < now:
+            expired_ids.append(row["id"])
+
+    if expired_ids:
+        placeholders = ",".join("?" for _ in expired_ids)
+        conn.execute(f"DELETE FROM grants WHERE id IN ({placeholders})", expired_ids)
+        conn.commit()
+
+    return len(expired_ids)
