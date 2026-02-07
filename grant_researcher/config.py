@@ -24,6 +24,7 @@ class Config:
     company: CompanyConfig
     search: SearchConfig
     anthropic_api_key: str
+    sam_api_key: str
     project_dir: Path
 
     @classmethod
@@ -40,11 +41,13 @@ class Config:
         company = CompanyConfig(**raw.get("company", {}))
         search = SearchConfig(**raw.get("search", {}))
         anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        sam_api_key = os.environ.get("SAM_API_KEY", "")
 
         return cls(
             company=company,
             search=search,
             anthropic_api_key=anthropic_api_key,
+            sam_api_key=sam_api_key,
             project_dir=project_dir,
         )
 

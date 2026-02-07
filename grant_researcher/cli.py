@@ -1,7 +1,7 @@
 import click
 
 from grant_researcher.config import Config
-from grant_researcher.db import init_db
+from grant_researcher.db import init_db, grant_count
 
 
 @click.group()
@@ -36,17 +36,40 @@ def ingest(ctx):
 @cli.command()
 @click.pass_context
 def search(ctx):
-    """Fetch grants from Grants.gov and store in the database."""
-    from grant_researcher.sources.grants_gov import search_grants
+    """Fetch grants from Grants.gov, SBIR.gov, and SAM.gov."""
+    from grant_researcher.sources.grants_gov import search_grants as search_grants_gov
+    from grant_researcher.sources.sbir_gov import search_grants as search_sbir
+    from grant_researcher.sources.sam_gov import search_grants as search_sam
 
     config = ctx.obj["config"]
     conn = ctx.obj["conn"]
 
     keywords = config.search.keywords
-    click.echo(f"Searching Grants.gov with {len(keywords)} keyword(s)...")
+    before = grant_count(conn)
 
-    total = search_grants(keywords, conn)
-    click.echo(f"Stored {total} grant(s) from Grants.gov.")
+    click.echo(f"Searching Grants.gov with {len(keywords)} keyword(s)...")
+    try:
+        search_grants_gov(keywords, conn)
+    except Exception as e:
+        click.echo(f"Grants.gov failed: {e}", err=True)
+
+    click.echo(f"Searching SBIR.gov with {len(keywords)} keyword(s)...")
+    try:
+        search_sbir(keywords, conn)
+    except Exception as e:
+        click.echo(f"SBIR.gov failed: {e}", err=True)
+
+    if config.sam_api_key:
+        click.echo(f"Searching SAM.gov with {len(keywords)} keyword(s)...")
+        try:
+            search_sam(keywords, conn, config.sam_api_key)
+        except Exception as e:
+            click.echo(f"SAM.gov failed: {e}", err=True)
+    else:
+        click.echo("Skipping SAM.gov (SAM_API_KEY not set).")
+
+    after = grant_count(conn)
+    click.echo(f"Done. {after - before} new grant(s) added ({after} total in DB).")
 
 
 @cli.command()

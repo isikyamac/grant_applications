@@ -59,6 +59,10 @@ def upsert_grant(conn: sqlite3.Connection, grant: dict[str, Any]) -> None:
     conn.commit()
 
 
+def grant_count(conn: sqlite3.Connection) -> int:
+    return conn.execute("SELECT COUNT(*) FROM grants").fetchone()[0]
+
+
 def get_unscored_grants(conn: sqlite3.Connection) -> list[dict]:
     rows = conn.execute(
         "SELECT * FROM grants WHERE score IS NULL ORDER BY created_at DESC"

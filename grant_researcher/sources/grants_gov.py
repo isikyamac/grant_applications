@@ -8,7 +8,7 @@ from grant_researcher.db import upsert_grant
 SEARCH_URL = "https://api.grants.gov/v1/api/search2"
 
 
-def _build_payload(keyword: str, page: int = 0, rows: int = 25) -> dict:
+def _build_payload(keyword: str, page: int = 0, rows: int = 50) -> dict:
     return {
         "keyword": keyword,
         "oppStatuses": "forecasted|posted",
