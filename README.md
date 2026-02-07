@@ -37,16 +37,16 @@ Edit `config.yaml` with your company profile and search keywords.
 Run the full pipeline:
 
 ```bash
-grant-researcher run
+python3 -c "from grant_researcher.cli import cli; cli()" -- run
 ```
 
 Or run individual steps:
 
 ```bash
-grant-researcher ingest    # parse proposal PDFs
-grant-researcher search    # fetch grants from all sources
-grant-researcher match     # score grants with Claude
-grant-researcher report    # print ranked results
+python3 -c "from grant_researcher.cli import cli; cli()" -- ingest    # parse proposal PDFs
+python3 -c "from grant_researcher.cli import cli; cli()" -- search    # fetch grants from all sources
+python3 -c "from grant_researcher.cli import cli; cli()" -- match     # score grants with Claude
+python3 -c "from grant_researcher.cli import cli; cli()" -- report    # print ranked results
 ```
 
 ## Configuration
