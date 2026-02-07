@@ -36,9 +36,12 @@ def ingest(ctx):
 @cli.command()
 @click.pass_context
 def search(ctx):
-    """Fetch grants from Grants.gov, SBIR.gov, and SAM.gov."""
+    """Fetch grants from Grants.gov, SBIR.gov, TRB RIP, EU Funding & Tenders, TED, and SAM.gov."""
     from grant_researcher.sources.grants_gov import search_grants as search_grants_gov
     from grant_researcher.sources.sbir_gov import search_grants as search_sbir
+    from grant_researcher.sources.trb_rip import search_grants as search_trb
+    from grant_researcher.sources.eu_funding import search_grants as search_eu
+    from grant_researcher.sources.ted_eu import search_grants as search_ted
     from grant_researcher.sources.sam_gov import search_grants as search_sam
 
     config = ctx.obj["config"]
@@ -58,6 +61,24 @@ def search(ctx):
         search_sbir(keywords, conn)
     except Exception as e:
         click.echo(f"SBIR.gov failed: {e}", err=True)
+
+    click.echo(f"Searching TRB RIP with {len(keywords)} keyword(s)...")
+    try:
+        search_trb(keywords, conn)
+    except Exception as e:
+        click.echo(f"TRB RIP failed: {e}", err=True)
+
+    click.echo("Searching EU Funding & Tenders Portal...")
+    try:
+        search_eu(keywords, conn)
+    except Exception as e:
+        click.echo(f"EU Funding & Tenders failed: {e}", err=True)
+
+    click.echo("Searching TED (Tenders Electronic Daily)...")
+    try:
+        search_ted(keywords, conn)
+    except Exception as e:
+        click.echo(f"TED failed: {e}", err=True)
 
     if config.sam_api_key:
         click.echo(f"Searching SAM.gov with {len(keywords)} keyword(s)...")

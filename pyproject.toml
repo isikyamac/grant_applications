@@ -14,6 +14,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "pyyaml>=6.0",
     "pymupdf>=1.24",
+    "beautifulsoup4>=4.12",
 ]
 
 [tool.setuptools.packages.find]
