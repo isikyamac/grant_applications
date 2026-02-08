@@ -34,3 +34,25 @@ search:
     - aviation artificial intelligence
     - generative AI transportation safety
     - deep learning aviation
+
+evaluator:
+  criteria_dir: "criteria"
+  panel_size: 3
+  temperature: 0.7
+  model: "claude-sonnet-4-5-20250929"
+  default_criteria:
+    - name: technical_merit
+      description: "Scientific/technical soundness, innovation, methodology, feasibility"
+      weight: 30
+    - name: team_capabilities
+      description: "Team qualifications, relevant expertise, track record, roles and responsibilities, capacity to deliver"
+      weight: 20
+    - name: broader_impacts
+      description: "Societal benefit, commercialization potential, workforce development"
+      weight: 20
+    - name: writing_quality
+      description: "Clarity, organization, persuasiveness, logical flow"
+      weight: 15
+    - name: budget_alignment
+      description: "Scope matches funding level, realistic timeline and milestones"
+      weight: 15
