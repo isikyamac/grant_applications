@@ -243,7 +243,7 @@ def write_markdown_report(
             lines.append(row)
         lines.append("")
 
-    output_path.write_text("\n".join(lines))
+    output_path.write_text("\n".join(lines), encoding="utf-8")
     return output_path
 
 

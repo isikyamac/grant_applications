@@ -1,6 +1,6 @@
-# Grant Researcher
+# Grant Researcher & Evaluator
 
-A Python CLI tool that searches for government grants and scores their relevance to your company using Claude.
+A Python tool that searches for government grants, scores their relevance using Claude, and evaluates proposal drafts with simulated reviewer panels.
 
 ## How It Works
 
@@ -49,6 +49,32 @@ python3 -c "from grant_researcher.cli import cli; cli()" -- match     # score gr
 python3 -c "from grant_researcher.cli import cli; cli()" -- report    # print ranked results
 ```
 
+## Grant Evaluator
+
+Score proposal drafts using a panel of AI reviewers. Available as both a CLI and a web UI.
+
+### Web UI
+
+```bash
+grant-evaluator-web
+```
+
+Opens a browser-based interface at http://127.0.0.1:5000 where you can:
+
+- Upload proposal PDFs (single or multi-part), criteria/RFP documents, and guidelines
+- Configure panel size, temperature, and model
+- Run evaluations with live progress streaming
+- View inline evaluation reports with scores, compliance checks, and detailed feedback
+- Browse past evaluation runs
+
+### CLI
+
+```bash
+python3 -c "from grant_evaluator.cli import cli; cli()" -- evaluate --proposal <filename.pdf> [--criteria <rfp.pdf>] [--guidelines <rules.pdf>]
+python3 -c "from grant_evaluator.cli import cli; cli()" -- report [--proposal <filename.pdf>]
+python3 -c "from grant_evaluator.cli import cli; cli()" -- run --proposal <filename.pdf> [--criteria <rfp.pdf>] [--guidelines <rules.pdf>]
+```
+
 ## Configuration
 
 **config.yaml:**
@@ -68,4 +94,6 @@ search:
     - keyword 2
 ```
 
-Place proposal PDFs in the `proposals/` directory for additional matching context.
+Place proposal PDFs in the `proposals/` directory for additional matching context. For multi-part proposals, create a subfolder (e.g. `proposals/my-grant/PartA.pdf`, `proposals/my-grant/PartB.pdf`).
+
+Place RFP/criteria and guidelines PDFs in the `criteria/` directory for evaluation rubric extraction.

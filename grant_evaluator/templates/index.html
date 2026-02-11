@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grant Evaluator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f5f5f5; color: #1a1a1a; line-height: 1.5; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 1.5rem; margin-bottom: 24px; }
+  h2 { font-size: 1.15rem; margin-bottom: 12px; color: #333; }
+  h3 { font-size: 1rem; margin-bottom: 8px; }
+
+  /* Layout */
+  .top-grid { display: grid; grid-template-columns: 1fr 320px; gap: 24px; margin-bottom: 24px; }
+  @media (max-width: 800px) { .top-grid { grid-template-columns: 1fr; } }
+
+  .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+  /* Forms */
+  label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: 4px; color: #444; }
+  input[type="file"], input[type="number"], input[type="text"], select {
+    width: 100%; padding: 8px 10px; border: 1px solid #d0d0d0; border-radius: 6px;
+    font-size: .9rem; margin-bottom: 12px; background: #fafafa;
+  }
+  input[type="file"] { padding: 6px; }
+  .row { display: flex; gap: 12px; }
+  .row > * { flex: 1; }
+  .help { font-size: .78rem; color: #777; margin-top: -8px; margin-bottom: 12px; }
+  .separator { border: none; border-top: 1px solid #e5e5e5; margin: 16px 0; }
+
+  /* Buttons */
+  .btn { display: inline-block; padding: 10px 20px; border: none; border-radius: 6px; font-size: .9rem; font-weight: 600; cursor: pointer; transition: background .15s; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-primary:disabled { background: #93b4f5; cursor: not-allowed; }
+  .btn-secondary { background: #e5e7eb; color: #333; }
+  .btn-secondary:hover { background: #d1d5db; }
+  .btn-sm { padding: 5px 12px; font-size: .8rem; }
+
+  /* Progress log */
+  #progress-section { display: none; margin-bottom: 24px; }
+  #progress-log {
+    background: #1e1e2e; color: #cdd6f4; font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+    font-size: .82rem; padding: 16px; border-radius: 8px; max-height: 240px; overflow-y: auto;
+    line-height: 1.7; white-space: pre-wrap;
+  }
+  .log-line { opacity: .7; }
+  .log-line:last-child { opacity: 1; }
+  .log-line::before { content: "> "; color: #89b4fa; }
+
+  /* Report */
+  #report-section { display: none; }
+  .score-badge {
+    display: inline-block; font-size: 2rem; font-weight: 700; padding: 8px 24px;
+    border-radius: 10px; color: #fff; margin-bottom: 16px;
+  }
+  .score-green { background: #16a34a; }
+  .score-yellow { background: #ca8a04; }
+  .score-red { background: #dc2626; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: .88rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e5e5; }
+  th { background: #f8f8f8; font-weight: 600; font-size: .82rem; color: #555; text-transform: uppercase; letter-spacing: .03em; }
+
+  .compliance-pass { color: #16a34a; font-weight: 600; }
+  .compliance-fail { color: #dc2626; font-weight: 600; }
+  .compliance-partial { color: #ca8a04; font-weight: 600; }
+
+  .criterion-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .criterion-card h3 { margin-bottom: 6px; }
+  .criterion-card ul { margin-left: 18px; margin-bottom: 8px; font-size: .88rem; }
+  .criterion-card li { margin-bottom: 3px; }
+  .feedback-label { font-weight: 600; font-size: .82rem; color: #555; margin-bottom: 4px; }
+
+  /* History sidebar */
+  .run-item { padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 4px; font-size: .88rem; transition: background .1s; }
+  .run-item:hover { background: #f0f0f0; }
+  .run-score { font-weight: 700; float: right; }
+  .run-meta { font-size: .78rem; color: #888; }
+  .empty-msg { font-size: .85rem; color: #999; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Grant Evaluator</h1>
+
+  <div class="top-grid">
+    <!-- Left: Upload & Configure -->
+    <div class="card">
+      <h2>Upload & Configure</h2>
+
+      <!-- Upload area -->
+      <form id="upload-form" enctype="multipart/form-data">
+        <label for="proposal_files">Proposal PDF(s)</label>
+        <input type="file" id="proposal_files" name="proposal_files" accept=".pdf" multiple>
+        <p class="help">Upload one PDF, or multiple PDFs for a multi-part proposal.</p>
+
+        <div id="proposal-name-row" style="display:none;">
+          <label for="proposal_name">Proposal folder name</label>
+          <input type="text" id="proposal_name" name="proposal_name" placeholder="e.g. my-grant-proposal">
+          <p class="help">Used as the folder name when uploading multiple files.</p>
+        </div>
+
+        <label for="criteria_file">Criteria / RFP PDF (optional)</label>
+        <input type="file" id="criteria_file" name="criteria_file" accept=".pdf">
+
+        <label for="guidelines_files">Guidelines PDF(s) (optional)</label>
+        <input type="file" id="guidelines_files" name="guidelines_files" accept=".pdf" multiple>
+
+        <button type="submit" class="btn btn-secondary btn-sm">Upload Files</button>
+        <span id="upload-status" style="margin-left:10px; font-size:.85rem; color:#16a34a;"></span>
+      </form>
+
+      <hr class="separator">
+
+      <!-- Evaluation config -->
+      <h2>Run Evaluation</h2>
+
+      <label for="proposal-select">Proposal</label>
+      <select id="proposal-select">
+        <option value="">-- Select a proposal --</option>
+        {% for p in proposals %}
+        <option value="{{ p.filename }}">{{ p.filename }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="criteria-select">Criteria / RFP file (optional)</label>
+      <select id="criteria-select">
+        <option value="">-- Default criteria --</option>
+        {% for f in criteria_files %}
+        <option value="{{ f }}">{{ f }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="guidelines-select">Guidelines file(s) (optional)</label>
+      <select id="guidelines-select" multiple size="3">
+        {% for f in criteria_files %}
+        <option value="{{ f }}">{{ f }}</option>
+        {% endfor %}
+      </select>
+      <p class="help">Hold Ctrl/Cmd to select multiple.</p>
+
+      <div class="row">
+        <div>
+          <label for="panel_size">Panel size</label>
+          <input type="number" id="panel_size" value="{{ config.panel_size }}" min="1" max="10" step="1">
+        </div>
+        <div>
+          <label for="temperature">Temperature</label>
+          <input type="number" id="temperature" value="{{ config.temperature }}" min="0" max="1" step="0.1">
+        </div>
+        <div>
+          <label for="model">Model</label>
+          <input type="text" id="model" value="{{ config.model }}">
+        </div>
+      </div>
+
+      <button id="evaluate-btn" class="btn btn-primary" onclick="startEvaluation()">Run Evaluation</button>
+    </div>
+
+    <!-- Right: History -->
+    <div class="card">
+      <h2>Evaluation History</h2>
+      <div id="history-list">
+        {% if runs %}
+          {% for r in runs %}
+          <div class="run-item" onclick="loadRun({{ r.id }})">
+            <span class="run-score">{{ "%.0f"|format(r.aggregate_score) if r.aggregate_score else "..." }}/100</span>
+            {{ r.filename }}
+            <div class="run-meta">Run #{{ r.id }} &middot; {{ r.created_at[:16] }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="empty-msg">No evaluations yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress log -->
+  <div id="progress-section" class="card">
+    <h2>Progress</h2>
+    <div id="progress-log"></div>
+  </div>
+
+  <!-- Report -->
+  <div id="report-section" class="card">
+    <div id="report-content"></div>
+  </div>
+</div>
+
+<script>
+// Show/hide proposal name input based on number of files selected
+document.getElementById("proposal_files").addEventListener("change", function() {
+  document.getElementById("proposal-name-row").style.display = this.files.length > 1 ? "block" : "none";
+});
+
+// Upload form
+document.getElementById("upload-form").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const status = document.getElementById("upload-status");
+  status.textContent = "Uploading...";
+  status.style.color = "#2563eb";
+
+  const fd = new FormData(this);
+  try {
+    const res = await fetch("/upload", { method: "POST", body: fd });
+    const data = await res.json();
+    if (data.ingested && data.ingested.length > 0) {
+      status.textContent = "Ingested: " + data.ingested.join(", ");
+      status.style.color = "#16a34a";
+      // Refresh proposal dropdown
+      const sel = document.getElementById("proposal-select");
+      for (const name of data.ingested) {
+        if (![...sel.options].some(o => o.value === name)) {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          sel.appendChild(opt);
+        }
+      }
+      // Auto-select the uploaded proposal
+      if (data.proposal) sel.value = data.proposal;
+    } else if (data.proposal) {
+      status.textContent = "Files saved (already ingested).";
+      status.style.color = "#16a34a";
+    } else {
+      status.textContent = "No proposal files uploaded.";
+      status.style.color = "#ca8a04";
+    }
+    // Refresh criteria dropdowns if new criteria/guidelines uploaded
+    if (data.criteria || (data.guidelines && data.guidelines.length > 0)) {
+      const allNew = [data.criteria, ...(data.guidelines || [])].filter(Boolean);
+      const critSel = document.getElementById("criteria-select");
+      const guidSel = document.getElementById("guidelines-select");
+      for (const name of allNew) {
+        for (const sel of [critSel, guidSel]) {
+          if (![...sel.options].some(o => o.value === name)) {
+            const opt = document.createElement("option");
+            opt.value = name;
+            opt.textContent = name;
+            sel.appendChild(opt);
+          }
+        }
+      }
+      if (data.criteria) critSel.value = data.criteria;
+    }
+  } catch (err) {
+    status.textContent = "Upload failed: " + err.message;
+    status.style.color = "#dc2626";
+  }
+});
+
+// Start evaluation via SSE
+function startEvaluation() {
+  const proposal = document.getElementById("proposal-select").value;
+  if (!proposal) { alert("Please select a proposal."); return; }
+
+  const criteria = document.getElementById("criteria-select").value;
+  const guidelinesOpts = document.getElementById("guidelines-select").selectedOptions;
+  const guidelines = [...guidelinesOpts].map(o => o.value).join(",");
+  const panelSize = document.getElementById("panel_size").value;
+  const temperature = document.getElementById("temperature").value;
+  const model = document.getElementById("model").value;
+
+  const params = new URLSearchParams({ proposal, criteria, guidelines, panel_size: panelSize, temperature, model });
+
+  const btn = document.getElementById("evaluate-btn");
+  btn.disabled = true;
+  btn.textContent = "Evaluating...";
+
+  const progressSection = document.getElementById("progress-section");
+  const progressLog = document.getElementById("progress-log");
+  const reportSection = document.getElementById("report-section");
+  progressSection.style.display = "block";
+  reportSection.style.display = "none";
+  progressLog.innerHTML = "";
+
+  const es = new EventSource("/evaluate?" + params.toString());
+
+  es.addEventListener("progress", function(e) {
+    const data = JSON.parse(e.data);
+    const line = document.createElement("div");
+    line.className = "log-line";
+    line.textContent = data.message;
+    progressLog.appendChild(line);
+    progressLog.scrollTop = progressLog.scrollHeight;
+  });
+
+  es.addEventListener("result", function(e) {
+    es.close();
+    btn.disabled = false;
+    btn.textContent = "Run Evaluation";
+    const data = JSON.parse(e.data);
+    renderReport(data);
+  });
+
+  es.addEventListener("error", function(e) {
+    if (e.data) {
+      const data = JSON.parse(e.data);
+      const line = document.createElement("div");
+      line.className = "log-line";
+      line.style.color = "#f38ba8";
+      line.textContent = "ERROR: " + data.error;
+      progressLog.appendChild(line);
+    }
+    es.close();
+    btn.disabled = false;
+    btn.textContent = "Run Evaluation";
+  });
+}
+
+// Load a past run
+async function loadRun(runId) {
+  const reportSection = document.getElementById("report-section");
+  const progressSection = document.getElementById("progress-section");
+  progressSection.style.display = "none";
+  reportSection.style.display = "block";
+  document.getElementById("report-content").innerHTML = "<p>Loading...</p>";
+
+  try {
+    const res = await fetch("/run/" + runId);
+    const data = await res.json();
+    if (data.error) {
+      document.getElementById("report-content").innerHTML = "<p style='color:#dc2626;'>Error: " + data.error + "</p>";
+    } else {
+      renderReport(data);
+    }
+  } catch (err) {
+    document.getElementById("report-content").innerHTML = "<p style='color:#dc2626;'>Failed to load run.</p>";
+  }
+}
+
+// Render report from JSON data
+function renderReport(data) {
+  const section = document.getElementById("report-section");
+  section.style.display = "block";
+  const el = document.getElementById("report-content");
+
+  const score = data.overall_score != null ? Math.round(data.overall_score) : "N/A";
+  const scoreClass = score >= 80 ? "score-green" : score >= 60 ? "score-yellow" : "score-red";
+
+  let html = "";
+
+  // Overall score
+  html += `<h2>Evaluation Report</h2>`;
+  html += `<div class="score-badge ${scoreClass}">${score}/100</div>`;
+  if (data.report_file) html += `<p style="font-size:.85rem;color:#666;margin-bottom:16px;">Markdown report: evaluations/${data.report_file}</p>`;
+
+  // Compliance table
+  if (data.compliance && data.compliance.length > 0) {
+    html += `<h3>Compliance Checks</h3><table><tr><th>Check</th><th>Status</th><th>Details</th></tr>`;
+    for (const c of data.compliance) {
+      const cls = "compliance-" + c.status;
+      html += `<tr><td>${esc(c.requirement || c.check || "")}</td><td class="${cls}">${c.status.toUpperCase()}</td><td>${esc(c.details || c.note || "")}</td></tr>`;
+    }
+    html += `</table>`;
+  }
+
+  // Score summary table
+  if (data.summary && data.summary.per_criterion) {
+    html += `<h3>Score Summary</h3><table><tr><th>Criterion</th><th>Median</th><th>Mean</th><th>Std Dev</th><th>Weight</th></tr>`;
+    const pc = data.summary.per_criterion;
+    for (const [name, stats] of Object.entries(pc)) {
+      const agreement = stats.std_dev < 5 ? "High" : stats.std_dev < 15 ? "Medium" : "Low";
+      html += `<tr><td>${esc(name)}</td><td><strong>${stats.median}</strong></td><td>${stats.mean.toFixed(1)}</td><td>${stats.std_dev.toFixed(1)} (${agreement})</td><td>${stats.weight}%</td></tr>`;
+    }
+    html += `</table>`;
+  }
+
+  // Per-criterion detail cards
+  if (data.reviews && data.reviews.length > 0) {
+    html += `<h3>Detailed Feedback</h3>`;
+    // Collect all criteria names from first reviewer
+    const criteria = data.reviews[0].scores.map(s => s.criterion);
+    for (const crit of criteria) {
+      html += `<div class="criterion-card"><h3>${esc(crit)}</h3>`;
+
+      // Aggregate feedback across reviewers
+      let strengths = [], weaknesses = [], suggestions = [];
+      for (const rev of data.reviews) {
+        const s = rev.scores.find(x => x.criterion === crit);
+        if (s) {
+          if (s.strengths) strengths.push(...s.strengths);
+          if (s.weaknesses) weaknesses.push(...s.weaknesses);
+          if (s.suggestions) suggestions.push(...s.suggestions);
+        }
+      }
+      // Deduplicate
+      strengths = [...new Set(strengths)];
+      weaknesses = [...new Set(weaknesses)];
+      suggestions = [...new Set(suggestions)];
+
+      if (strengths.length) {
+        html += `<p class="feedback-label">Strengths</p><ul>${strengths.map(s => `<li>${esc(s)}</li>`).join("")}</ul>`;
+      }
+      if (weaknesses.length) {
+        html += `<p class="feedback-label">Weaknesses</p><ul>${weaknesses.map(s => `<li>${esc(s)}</li>`).join("")}</ul>`;
+      }
+      if (suggestions.length) {
+        html += `<p class="feedback-label">Suggestions</p><ul>${suggestions.map(s => `<li>${esc(s)}</li>`).join("")}</ul>`;
+      }
+      html += `</div>`;
+    }
+  }
+
+  // Individual reviewer scores table
+  if (data.reviews && data.reviews.length > 0) {
+    const criteria = data.reviews[0].scores.map(s => s.criterion);
+    html += `<h3>Individual Reviewer Scores</h3><table><tr><th>Reviewer</th>`;
+    for (const c of criteria) html += `<th>${esc(c)}</th>`;
+    html += `<th>Overall</th></tr>`;
+    for (const rev of data.reviews) {
+      html += `<tr><td>Reviewer ${rev.reviewer_number}</td>`;
+      for (const c of criteria) {
+        const s = rev.scores.find(x => x.criterion === c);
+        html += `<td>${s ? s.score : "-"}</td>`;
+      }
+      html += `<td><strong>${rev.overall_score != null ? Math.round(rev.overall_score) : "-"}</strong></td></tr>`;
+    }
+    html += `</table>`;
+  }
+
+  el.innerHTML = html;
+  section.scrollIntoView({ behavior: "smooth" });
+}
+
+function esc(s) {
+  if (!s) return "";
+  const d = document.createElement("div");
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>

@@ -24,7 +24,7 @@ def ingest(ctx):
     config = ctx.obj["config"]
     conn = ctx.obj["conn"]
 
-    click.echo(f"Scanning {config.proposals_dir} for PDFs...")
+    click.echo(f"Scanning {config.proposals_dir} for PDFs and proposal folders...")
     ingested = ingest_proposals(config.proposals_dir, conn)
 
     if ingested:

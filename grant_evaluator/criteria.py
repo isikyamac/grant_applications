@@ -52,7 +52,7 @@ Respond in this JSON format (and nothing else):
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
         model=model,
-        max_tokens=1024,
+        max_tokens=4096,
         messages=[{"role": "user", "content": prompt}],
     )
 
@@ -66,8 +66,11 @@ Respond in this JSON format (and nothing else):
         start = response_text.index("```") + 3
         if response_text[start:].startswith("json"):
             start += 4
-        end = response_text.index("```", start)
-        response_text = response_text[start:end].strip()
+        end = response_text.find("```", start)
+        if end == -1:
+            response_text = response_text[start:].strip()
+        else:
+            response_text = response_text[start:end].strip()
 
     parsed = json.loads(response_text)
     criteria = []

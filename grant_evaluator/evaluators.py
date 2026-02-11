@@ -145,7 +145,7 @@ def run_compliance_check(
 
     message = client.messages.create(
         model=config.model,
-        max_tokens=4096,
+        max_tokens=8192,
         temperature=0.2,  # low temperature for factual compliance checking
         messages=[{"role": "user", "content": prompt}],
     )
@@ -180,7 +180,7 @@ def run_panel(
 
         message = client.messages.create(
             model=config.model,
-            max_tokens=4096,
+            max_tokens=8192,
             temperature=config.temperature,
             messages=[{"role": "user", "content": prompt}],
         )

@@ -39,7 +39,8 @@ def _resolve_proposal(conn, proposal_name: str) -> dict:
 
     available = ", ".join(p["filename"] for p in proposals)
     raise click.ClickException(
-        f"Proposal '{proposal_name}' not found. Available: {available}"
+        f"Proposal '{proposal_name}' not found (looked for file and folder names). "
+        f"Available: {available}"
     )
 
 
@@ -89,7 +90,7 @@ def _load_guidelines(config, guidelines_names: tuple[str, ...]) -> str | None:
 
 
 @cli.command()
-@click.option("--proposal", required=True, help="Proposal filename (in proposals/)")
+@click.option("--proposal", required=True, help="Proposal filename or folder name (in proposals/)")
 @click.option("--criteria", default=None, help="RFP/criteria filename (in criteria/)")
 @click.option("--guidelines", multiple=True, help="Rules/guidelines file(s) (in criteria/), repeatable")
 @click.pass_context
@@ -205,7 +206,7 @@ def report(ctx, proposal: str | None):
 
 
 @cli.command()
-@click.option("--proposal", required=True, help="Proposal filename (in proposals/)")
+@click.option("--proposal", required=True, help="Proposal filename or folder name (in proposals/)")
 @click.option("--criteria", default=None, help="RFP/criteria filename (in criteria/)")
 @click.option("--guidelines", multiple=True, help="Rules/guidelines file(s) (in criteria/), repeatable")
 @click.pass_context
