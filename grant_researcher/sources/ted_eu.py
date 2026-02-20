@@ -1,5 +1,6 @@
 import json
 import time
+from datetime import datetime, timedelta, timezone
 from sqlite3 import Connection
 
 import httpx
@@ -9,12 +10,16 @@ from grant_researcher.db import upsert_grant
 SEARCH_URL = "https://api.ted.europa.eu/v3/notices/search"
 
 # Expert query syntax: FT = (term OR term ...) with date filter for recent notices
-QUERY = (
+_KEYWORDS = (
     'FT = (aviation OR aircraft OR aerospace OR airport OR SESAR'
     ' OR "air traffic management" OR "unmanned aerial"'
     ' OR "generative AI" OR "artificial intelligence" OR "machine learning")'
-    " AND publication-date > 20240101"
 )
+
+
+def _build_query() -> str:
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y%m%d")
+    return f"{_KEYWORDS} AND publication-date > {cutoff}"
 
 FIELDS = ["publication-number", "publication-date", "notice-title"]
 
@@ -25,7 +30,7 @@ REQUEST_DELAY = 1.0
 
 def _build_payload(page: int = 1) -> dict:
     return {
-        "query": QUERY,
+        "query": _build_query(),
         "fields": FIELDS,
         "page": page,
         "limit": PAGE_LIMIT,
@@ -80,7 +85,7 @@ def _normalize(notice: dict) -> dict:
         "title": title,
         "agency": "TED (EU)",
         "description": "",
-        "deadline": pub_date,
+        "deadline": "",
         "url": f"https://ted.europa.eu/en/notice/{notice_id}",
         "amount": "",
         "raw_json": json.dumps(notice, default=str),

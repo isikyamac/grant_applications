@@ -1,11 +1,20 @@
+from datetime import datetime, timezone
 from sqlite3 import Connection
 
-from grant_researcher.db import get_scored_grants
+from grant_researcher.db import _parse_deadline, get_scored_grants
+
+
+def _is_expired(deadline: str | None) -> bool:
+    """Return True if the deadline is a parseable date in the past."""
+    if not deadline:
+        return False
+    dt = _parse_deadline(deadline)
+    return dt is not None and dt < datetime.now(timezone.utc)
 
 
 def print_report(conn: Connection) -> int:
     """Print a ranked table of scored grants. Returns count of grants displayed."""
-    grants = get_scored_grants(conn)
+    grants = [g for g in get_scored_grants(conn) if not _is_expired(g["deadline"])]
 
     if not grants:
         print("No scored grants to display. Run 'grant-researcher match' first.")
